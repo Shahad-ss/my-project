@@ -531,6 +531,20 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
     };
   }
 
+  if (cleanUrl.includes("/api/assistant")) {
+    const question = bodyData?.question || "";
+    let answer = "I'm Mizan, your personal financial assistant. You can add your bills, track your debts, and set savings goals directly from your dashboard!";
+    const q = question.toLowerCase();
+    if (q.includes("bill")) {
+      answer = "To manage your bills, navigate to the Bills page. You can add recurring payments and mark them as paid anytime.";
+    } else if (q.includes("debt")) {
+      answer = "In the Debts section, you can add loan balances, set monthly payments, and watch your payoff progress over time.";
+    } else if (q.includes("save") || q.includes("saving")) {
+      answer = "You can create savings goals in the Savings section. Add target amounts and make contributions whenever you have spare funds.";
+    }
+    return { answer };
+  }
+
   return [];
 }
 
@@ -545,6 +559,18 @@ export async function customFetch<T = unknown>(
 
   if (init.body != null && (method === "GET" || method === "HEAD")) {
     throw new TypeError(`customFetch: ${method} requests cannot have a body.`);
+  }
+
+  const requestInfo = { method, url: resolveUrl(input) };
+
+  // When no remote API _baseUrl is explicitly set (e.g. static hosting deployment),
+  // handle requests in-memory without making dead network calls to avoid red console 405 errors.
+  if (!_baseUrl) {
+    let bodyData: any = null;
+    if (typeof init.body === "string") {
+      try { bodyData = JSON.parse(init.body); } catch {}
+    }
+    return handleMockStorage(requestInfo.url, method, bodyData) as T;
   }
 
   const headers = mergeHeaders(isRequest(input) ? input.headers : undefined, headersInit);
@@ -567,8 +593,6 @@ export async function customFetch<T = unknown>(
       headers.set("authorization", `Bearer ${token}`);
     }
   }
-
-  const requestInfo = { method, url: resolveUrl(input) };
 
   try {
     const response = await fetch(input, { ...init, method, headers });

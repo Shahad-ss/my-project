@@ -27,28 +27,6 @@ async function authRequest(
   path: string,
   body?: { email: string; password: string },
 ) {
-  try {
-    const response = await fetch(`/api/auth/${path}`, {
-      method: body ? "POST" : "GET",
-      credentials: "include",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (response.ok) {
-      return response.status === 204 ? null : response.json();
-    }
-    const contentType = response.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
-      if (data.error) throw new Error(data.error);
-    }
-  } catch (err: any) {
-    if (err.message && err.message !== "Failed to fetch" && !err.message.includes("Authentication failed")) {
-      throw err;
-    }
-  }
-
-  // Fallback to local session storage for frontend-only deployments
   if (path === "signup" || path === "login") {
     if (!body?.email || !body?.password) {
       throw new Error("Please enter an email and password.");
