@@ -37,7 +37,8 @@ async function authRequest(
     if (response.ok) {
       return response.status === 204 ? null : response.json();
     }
-    if (response.status !== 404 && response.status !== 502) {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (data.error) throw new Error(data.error);
     }
