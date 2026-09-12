@@ -9,7 +9,8 @@ import { formatDateOnly } from '@/lib/date';
 
 export default function Debts() {
   const { t } = useLanguage();
-  const { data: debts, isLoading } = useListDebts();
+  const { data: rawDebts, isLoading } = useListDebts();
+  const debts = Array.isArray(rawDebts) ? rawDebts : [];
   const { data: profile } = useGetProfile();
   const createDebt = useCreateDebt();
   const deleteDebt = useDeleteDebt();

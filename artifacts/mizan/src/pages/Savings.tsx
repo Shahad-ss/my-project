@@ -9,7 +9,8 @@ import { formatDateOnly } from '@/lib/date';
 
 export default function Savings() {
   const { t } = useLanguage();
-  const { data: goals, isLoading } = useListSavingsGoals();
+  const { data: rawGoals, isLoading } = useListSavingsGoals();
+  const goals = Array.isArray(rawGoals) ? rawGoals : [];
   const { data: profile } = useGetProfile();
   const createGoal = useCreateSavingsGoal();
   const deleteGoal = useDeleteSavingsGoal();

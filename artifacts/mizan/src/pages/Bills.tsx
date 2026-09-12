@@ -9,7 +9,8 @@ import { formatDateOnly } from '@/lib/date';
 
 export default function Bills() {
   const { t } = useLanguage();
-  const { data: bills, isLoading } = useListBills();
+  const { data: rawBills, isLoading } = useListBills();
+  const bills = Array.isArray(rawBills) ? rawBills : [];
   const { data: profile } = useGetProfile();
   const createBill = useCreateBill();
   const updateBill = useUpdateBill();

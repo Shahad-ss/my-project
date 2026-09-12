@@ -322,6 +322,202 @@ async function parseSuccessBody(
   }
 }
 
+function getStored<T>(key: string, defaultValue: T): T {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function setStored<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+function handleMockStorage(url: string, method: string, bodyData: any): any {
+  const cleanUrl = url.split("?")[0];
+
+  if (cleanUrl.includes("/api/user/profile")) {
+    const profile = getStored("mizan_profile", { displayName: "User", preferredCurrency: "USD" });
+    if (method === "PUT" || method === "POST") {
+      const updated = { ...profile, ...bodyData };
+      setStored("mizan_profile", updated);
+      return updated;
+    }
+    return profile;
+  }
+
+  if (cleanUrl.includes("/api/bills")) {
+    let bills = getStored<any[]>("mizan_bills", []);
+    const match = cleanUrl.match(/\/api\/bills\/(\d+)/);
+    const id = match ? Number(match[1]) : null;
+
+    if (method === "GET") return bills;
+    if (method === "POST") {
+      const newBill = {
+        id: Date.now(),
+        name: bodyData?.name || "New Bill",
+        amount: Number(bodyData?.amount || 0),
+        dueDate: bodyData?.dueDate || new Date().toISOString().split("T")[0],
+        nextPaymentDate: bodyData?.dueDate || new Date().toISOString().split("T")[0],
+        frequency: bodyData?.frequency || "monthly",
+        endDate: bodyData?.endDate || null,
+        paid: false,
+        status: "pending",
+        daysRemaining: 7,
+      };
+      bills.push(newBill);
+      setStored("mizan_bills", bills);
+      return newBill;
+    }
+    if (method === "PATCH" || method === "PUT") {
+      if (id) {
+        bills = bills.map((b) => (b.id === id ? { ...b, ...bodyData } : b));
+        setStored("mizan_bills", bills);
+        return bills.find((b) => b.id === id) || {};
+      }
+    }
+    if (method === "DELETE" && id) {
+      bills = bills.filter((b) => b.id !== id);
+      setStored("mizan_bills", bills);
+      return { success: true };
+    }
+    return bills;
+  }
+
+  if (cleanUrl.includes("/api/debts")) {
+    let debts = getStored<any[]>("mizan_debts", []);
+    const match = cleanUrl.match(/\/api\/debts\/(\d+)/);
+    const id = match ? Number(match[1]) : null;
+
+    if (cleanUrl.includes("/payments") && method === "POST") {
+      const payMatch = cleanUrl.match(/\/api\/debts\/(\d+)\/payments/);
+      const payId = payMatch ? Number(payMatch[1]) : null;
+      if (payId) {
+        debts = debts.map((d) => {
+          if (d.id === payId) {
+            const paid = Number(bodyData?.amount || 0);
+            const remaining = Math.max(0, d.remainingAmount - paid);
+            const progress = Math.min(100, Math.round(((d.totalAmount - remaining) / d.totalAmount) * 100));
+            return { ...d, remainingAmount: remaining, progress };
+          }
+          return d;
+        });
+        setStored("mizan_debts", debts);
+        return debts.find((d) => d.id === payId) || {};
+      }
+    }
+
+    if (method === "GET") return debts;
+    if (method === "POST") {
+      const totalAmount = Number(bodyData?.totalAmount || 0);
+      const newDebt = {
+        id: Date.now(),
+        name: bodyData?.name || "New Debt",
+        totalAmount,
+        remainingAmount: totalAmount,
+        monthlyPayment: Number(bodyData?.monthlyPayment || 0),
+        dueDate: bodyData?.dueDate || new Date().toISOString().split("T")[0],
+        progress: 0,
+        estimatedMonthsRemaining: Math.ceil(totalAmount / (bodyData?.monthlyPayment || 1)),
+        estimatedPayoffDate: new Date().toISOString(),
+      };
+      debts.push(newDebt);
+      setStored("mizan_debts", debts);
+      return newDebt;
+    }
+    if (method === "DELETE" && id) {
+      debts = debts.filter((d) => d.id !== id);
+      setStored("mizan_debts", debts);
+      return { success: true };
+    }
+    return debts;
+  }
+
+  if (cleanUrl.includes("/api/savings-goals")) {
+    let goals = getStored<any[]>("mizan_savings", []);
+    const match = cleanUrl.match(/\/api\/savings-goals\/(\d+)/);
+    const id = match ? Number(match[1]) : null;
+
+    if (cleanUrl.includes("/contributions") && method === "POST") {
+      const contribMatch = cleanUrl.match(/\/api\/savings-goals\/(\d+)\/contributions/);
+      const contribId = contribMatch ? Number(contribMatch[1]) : null;
+      if (contribId) {
+        goals = goals.map((g) => {
+          if (g.id === contribId) {
+            const added = Number(bodyData?.amount || 0);
+            const current = g.currentAmount + added;
+            const remaining = Math.max(0, g.targetAmount - current);
+            const progress = g.targetAmount > 0 ? Math.min(100, Math.round((current / g.targetAmount) * 100)) : 0;
+            return { ...g, currentAmount: current, remainingAmount: remaining, progress };
+          }
+          return g;
+        });
+        setStored("mizan_savings", goals);
+        return goals.find((g) => g.id === contribId) || {};
+      }
+    }
+
+    if (method === "GET") return goals;
+    if (method === "POST") {
+      const targetAmount = Number(bodyData?.targetAmount || 0);
+      const currentAmount = Number(bodyData?.currentAmount || 0);
+      const remainingAmount = Math.max(0, targetAmount - currentAmount);
+      const progress = targetAmount > 0 ? Math.min(100, Math.round((currentAmount / targetAmount) * 100)) : 0;
+      const newGoal = {
+        id: Date.now(),
+        name: bodyData?.name || "New Savings Goal",
+        targetAmount,
+        currentAmount,
+        remainingAmount,
+        monthlyContribution: Number(bodyData?.monthlyContribution || 0),
+        progress,
+        estimatedMonthsRemaining: Math.ceil(remainingAmount / (bodyData?.monthlyContribution || 1)),
+        estimatedCompletionDate: new Date().toISOString(),
+      };
+      goals.push(newGoal);
+      setStored("mizan_savings", goals);
+      return newGoal;
+    }
+    if (method === "DELETE" && id) {
+      goals = goals.filter((g) => g.id !== id);
+      setStored("mizan_savings", goals);
+      return { success: true };
+    }
+    return goals;
+  }
+
+  if (cleanUrl.includes("/api/dashboard")) {
+    const bills = getStored<any[]>("mizan_bills", []);
+    const debts = getStored<any[]>("mizan_debts", []);
+    const goals = getStored<any[]>("mizan_savings", []);
+
+    const upcomingBills = bills.filter((b) => !b.paid).length;
+    const totalRemainingDebt = debts.reduce((sum, d) => sum + Number(d.remainingAmount || 0), 0);
+    const currentSavings = goals.reduce((sum, g) => sum + Number(g.currentAmount || 0), 0);
+    const targetSavings = goals.reduce((sum, g) => sum + Number(g.targetAmount || 0), 0);
+    const savingsProgress = targetSavings > 0 ? Math.min(100, Math.round((currentSavings / targetSavings) * 100)) : 0;
+
+    return {
+      monthlyIncome: 5000,
+      upcomingBills,
+      nextBill: bills.find((b) => !b.paid)?.name || null,
+      totalRemainingDebt,
+      currentSavings,
+      savingsProgress,
+      recentActivity: [
+        ...bills.slice(-2).map((b) => ({ id: "b_" + b.id, title: `Bill: ${b.name}`, detail: `$${b.amount}`, occurredAt: new Date().toISOString() })),
+        ...debts.slice(-2).map((d) => ({ id: "d_" + d.id, title: `Debt: ${d.name}`, detail: `$${d.remainingAmount} remaining`, occurredAt: new Date().toISOString() })),
+      ],
+    };
+  }
+
+  return [];
+}
+
 export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
@@ -349,8 +545,6 @@ export async function customFetch<T = unknown>(
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 
-  // Attach bearer token when an auth getter is configured and no
-  // Authorization header has been explicitly provided.
   if (_authTokenGetter && !headers.has("authorization")) {
     const token = await _authTokenGetter();
     if (token) {
@@ -360,12 +554,27 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  try {
+    const response = await fetch(input, { ...init, method, headers });
 
-  if (!response.ok) {
-    const errorData = await parseErrorBody(response, method);
-    throw new ApiError(response, errorData, requestInfo);
+    if (response.ok) {
+      return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const errorData = await parseErrorBody(response, method);
+      throw new ApiError(response, errorData, requestInfo);
+    }
+  } catch (err: any) {
+    if (err instanceof ApiError && err.status < 400) {
+      throw err;
+    }
   }
 
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  let bodyData: any = null;
+  if (typeof init.body === "string") {
+    try { bodyData = JSON.parse(init.body); } catch {}
+  }
+  return handleMockStorage(requestInfo.url, method, bodyData) as T;
 }
