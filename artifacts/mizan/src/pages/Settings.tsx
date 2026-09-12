@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useGetProfile, useUpdateProfile, getGetProfileQueryKey } from '@workspace/api-client-react';
+import { useGetProfile, useUpdateProfile, getGetProfileQueryKey, getGetDashboardQueryKey } from '@workspace/api-client-react';
 import { Card, CardContent, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -52,6 +52,7 @@ export default function Settings() {
     updateProfile.mutate({ data: formData }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetProfileQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         toast.success("Preferences updated successfully");
         if (formData.theme) {
           setContextTheme(formData.theme as any);
