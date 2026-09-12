@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useListDebts, useCreateDebt, useUpdateDebt, useDeleteDebt, useRecordDebtPayment, getListDebtsQueryKey, useGetProfile } from '@workspace/api-client-react';
+import { useEffect, useState } from 'react';
+import { useListDebts, useCreateDebt, useUpdateDebt, useDeleteDebt, useRecordDebtPayment, getListDebtsQueryKey, getGetDashboardQueryKey, useGetProfile } from '@workspace/api-client-react';
 import { Card, CardContent, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Label, Progress } from '@/components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Landmark, HandCoins } from 'lucide-react';
@@ -16,7 +16,12 @@ export default function Debts() {
   const recordPayment = useRecordDebtPayment();
   const queryClient = useQueryClient();
   
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => window.location.hash === "#add");
+  useEffect(() => {
+    if (window.location.hash === "#add") {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
   const [paymentOpenId, setPaymentOpenId] = useState<number | null>(null);
   
   const currency = profile?.preferredCurrency || "USD";
@@ -37,6 +42,7 @@ export default function Debts() {
     createDebt.mutate({ data }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListDebtsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         setIsOpen(false);
         toast.success("Debt tracker created");
       },
@@ -51,6 +57,7 @@ export default function Debts() {
     recordPayment.mutate({ id: paymentOpenId, data: { amount: Number(formData.get('amount')) } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListDebtsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         setPaymentOpenId(null);
         toast.success("Payment recorded");
       }
@@ -60,7 +67,10 @@ export default function Debts() {
   const handleDelete = (id: number) => {
     if(confirm("Delete this debt record?")) {
       deleteDebt.mutate({ id }, {
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListDebtsQueryKey() })
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListDebtsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        }
       });
     }
   };
@@ -127,10 +137,10 @@ export default function Debts() {
             <div className="h-16 w-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mb-6">
               <Landmark className="h-8 w-8" />
             </div>
-            <h3 className="text-xl font-serif font-bold mb-2">No debts tracked</h3>
-            <p className="text-muted-foreground mb-6">You're completely debt free, or haven't tracked any yet!</p>
+            <h3 className="text-xl font-serif font-bold mb-2">No debts added</h3>
+            <p className="text-muted-foreground mb-6">Add a debt to start tracking your payments and remaining balance.</p>
             <Button onClick={() => setIsOpen(true)} variant="outline" className="rounded-full">
-              {t('add_debt')}
+              Add Debt
             </Button>
           </CardContent>
         </Card>

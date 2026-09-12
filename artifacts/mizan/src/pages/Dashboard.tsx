@@ -1,13 +1,15 @@
 import { useGetDashboard, useGetProfile } from '@workspace/api-client-react';
-import { Card, CardContent, CardHeader, CardTitle, Progress, Skeleton } from '@/components/ui';
-import { Wallet, Receipt, Landmark, PiggyBank, Calendar, ArrowUpRight } from 'lucide-react';
+import { Card, CardContent, Button, Progress, Skeleton } from '@/components/ui';
+import { Wallet, Receipt, Landmark, PiggyBank, Calendar, ArrowUpRight, Plus } from 'lucide-react';
 import { useLanguage } from '@/providers/language-provider';
 import { DashboardFinancialAssistant } from '@/components/FinancialAssistant';
+import { useLocation } from 'wouter';
 
 export default function Dashboard() {
   const { t } = useLanguage();
   const { data: dashboard, isLoading: dashLoading } = useGetDashboard();
   const { data: profile } = useGetProfile();
+  const [, navigate] = useLocation();
 
   if (dashLoading || !dashboard) {
     return (
@@ -25,6 +27,7 @@ export default function Dashboard() {
   }
 
   const currency = profile?.preferredCurrency || "USD";
+  const isAllEmpty = !dashboard.recentActivity?.length;
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(val);
 
@@ -36,6 +39,31 @@ export default function Dashboard() {
         </h1>
         <p className="text-muted-foreground mt-2 text-lg">{t('financial_overview')}</p>
       </header>
+
+      {isAllEmpty && (
+        <Card className="rounded-3xl border-dashed">
+          <CardContent className="p-8 md:p-12 text-center flex flex-col items-center justify-center">
+            <div className="h-16 w-16 bg-secondary text-secondary-foreground rounded-2xl flex items-center justify-center mb-6">
+              <Wallet className="h-8 w-8" />
+            </div>
+            <h2 className="text-2xl font-serif font-bold mb-2">Welcome to Mizan!</h2>
+            <p className="text-muted-foreground max-w-xl mb-6">
+              Start organizing your finances by adding your first bill, debt, or savings goal.
+            </p>
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3">
+              <Button onClick={() => navigate('/bills#add')} className="rounded-full">
+                <Plus className="h-4 w-4 me-2" /> Add Bill
+              </Button>
+              <Button onClick={() => navigate('/debts#add')} variant="outline" className="rounded-full">
+                <Plus className="h-4 w-4 me-2" /> Add Debt
+              </Button>
+              <Button onClick={() => navigate('/savings#add')} variant="outline" className="rounded-full">
+                <Plus className="h-4 w-4 me-2" /> Create Savings Goal
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="rounded-3xl border-transparent shadow-sm bg-primary text-primary-foreground">
@@ -108,14 +136,14 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : !isAllEmpty ? (
             <Card className="rounded-3xl border-dashed">
               <CardContent className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center">
                 <Calendar className="h-12 w-12 opacity-20 mb-4" />
                 <p className="text-lg">{t('no_activity')}</p>
               </CardContent>
             </Card>
-          )}
+          ) : null}
         </div>
         
         <div className="space-y-6">

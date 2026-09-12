@@ -1,0 +1,76 @@
+Make ONLY the following changes to the Mizan app. Do not redesign or change any other existing features or UI.
+
+1. MVP: Manual Entry Only
+
+Keep the MVP focused entirely on manual financial entry.
+
+Remove or disable any bank account connection, bank integration, automatic transaction import, or open banking functionality.
+
+Users should manually enter:
+- Bills
+- Debts
+- Savings goals
+- Payments
+- Savings contributions
+
+Keep MongoDB for securely storing the user's manually entered financial data.
+
+Do NOT add real payment processing or bank connections.
+
+The goal is to keep the MVP simple, practical, and focused on manual financial management.
+
+2. Clear Empty States
+
+Improve the empty states throughout the app so that a new user immediately understands what to do when they have no data.
+
+Dashboard empty state:
+If the user has no bills, debts, or savings goals, show a welcoming message such as:
+
+"Welcome to Mizan!"
+"Start organizing your finances by adding your first bill, debt, or savings goal."
+
+Add clear action buttons:
++ Add Bill
++ Add Debt
++ Create Savings Goal
+
+Bills empty state:
+Show:
+"No bills yet"
+"Add your first bill to start tracking your upcoming payments."
+
+Button:
+"Add Bill"
+
+Debt empty state:
+Show:
+"No debts added"
+"Add a debt to start tracking your payments and remaining balance."
+
+Button:
+"Add Debt"
+
+Savings empty state:
+Show:
+"No savings goals yet"
+"Create your first goal and start tracking your progress."
+
+Button:
+"Create Goal"
+
+Make the empty states visually consistent with the existing Mizan design and keep them clean, calming, and professional.
+
+Important:
+- Do not change the existing color palette.
+- Do not redesign the navigation.
+- Do not change the current layout unnecessarily.
+- Do not remove working features.
+- Do not add bank integration.
+- Do not add payment processing.
+- Keep Arabic and English support working.
+- Keep RTL/LTR working.
+- Keep light and dark mode working.
+- Make sure all empty-state buttons actually open the correct forms.
+
+After making these changes, test the complete new-user flow:
+Sign Up → Empty Dashboard → Add Bill → Add Debt → Create Savings Goal → Dashboard updates with the new data.

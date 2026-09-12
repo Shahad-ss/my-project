@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useListBills, useCreateBill, useUpdateBill, useDeleteBill, getListBillsQueryKey, useGetProfile } from '@workspace/api-client-react';
+import { useEffect, useState } from 'react';
+import { useListBills, useCreateBill, useUpdateBill, useDeleteBill, getListBillsQueryKey, getGetDashboardQueryKey, useGetProfile } from '@workspace/api-client-react';
 import { Card, CardContent, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Badge } from '@/components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, CheckCircle2, Circle, Trash2, Calendar, Receipt } from 'lucide-react';
@@ -16,7 +16,12 @@ export default function Bills() {
   const deleteBill = useDeleteBill();
   const queryClient = useQueryClient();
   
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => window.location.hash === "#add");
+  useEffect(() => {
+    if (window.location.hash === "#add") {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
   const [frequency, setFrequency] = useState<"weekly" | "monthly" | "yearly" | "one_time">("monthly");
   
   const currency = profile?.preferredCurrency || "USD";
@@ -37,6 +42,7 @@ export default function Bills() {
     createBill.mutate({ data }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         setIsOpen(false);
         toast.success("Bill created successfully");
       },
@@ -48,6 +54,7 @@ export default function Bills() {
     updateBill.mutate({ id, data: { paid: !currentPaid } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         toast.success(
           frequency !== "one_time" && !currentPaid
             ? "Payment recorded and next bill scheduled"
@@ -62,6 +69,7 @@ export default function Bills() {
       deleteBill.mutate({ id }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListBillsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
           toast.success("Bill deleted");
         }
       });
@@ -133,10 +141,10 @@ export default function Bills() {
             <div className="h-16 w-16 bg-secondary text-secondary-foreground rounded-2xl flex items-center justify-center mb-6">
               <Receipt className="h-8 w-8" />
             </div>
-            <h3 className="text-xl font-serif font-bold mb-2">No bills found</h3>
-            <p className="text-muted-foreground mb-6">Add your first bill to start tracking your expenses.</p>
+            <h3 className="text-xl font-serif font-bold mb-2">No bills yet</h3>
+            <p className="text-muted-foreground mb-6">Add your first bill to start tracking your upcoming payments.</p>
             <Button onClick={() => setIsOpen(true)} variant="outline" className="rounded-full">
-              {t('add_bill')}
+              Add Bill
             </Button>
           </CardContent>
         </Card>

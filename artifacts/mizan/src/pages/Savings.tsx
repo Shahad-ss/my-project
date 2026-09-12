@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useListSavingsGoals, useCreateSavingsGoal, useUpdateSavingsGoal, useDeleteSavingsGoal, useAddSavingsContribution, getListSavingsGoalsQueryKey, useGetProfile } from '@workspace/api-client-react';
+import { useEffect, useState } from 'react';
+import { useListSavingsGoals, useCreateSavingsGoal, useUpdateSavingsGoal, useDeleteSavingsGoal, useAddSavingsContribution, getListSavingsGoalsQueryKey, getGetDashboardQueryKey, useGetProfile } from '@workspace/api-client-react';
 import { Card, CardContent, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Label, Progress } from '@/components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, PiggyBank, Heart } from 'lucide-react';
@@ -16,7 +16,12 @@ export default function Savings() {
   const addContrib = useAddSavingsContribution();
   const queryClient = useQueryClient();
   
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => window.location.hash === "#add");
+  useEffect(() => {
+    if (window.location.hash === "#add") {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
   const [contribOpenId, setContribOpenId] = useState<number | null>(null);
   
   const currency = profile?.preferredCurrency || "USD";
@@ -36,6 +41,7 @@ export default function Savings() {
     createGoal.mutate({ data }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListSavingsGoalsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         setIsOpen(false);
         toast.success("Savings goal created");
       },
@@ -50,6 +56,7 @@ export default function Savings() {
     addContrib.mutate({ id: contribOpenId, data: { amount: Number(formData.get('amount')) } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListSavingsGoalsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
         setContribOpenId(null);
         toast.success("Contribution added!");
       }
@@ -59,7 +66,10 @@ export default function Savings() {
   const handleDelete = (id: number) => {
     if(confirm("Delete this savings goal?")) {
       deleteGoal.mutate({ id }, {
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListSavingsGoalsQueryKey() })
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListSavingsGoalsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        }
       });
     }
   };
@@ -126,10 +136,10 @@ export default function Savings() {
             <div className="h-16 w-16 bg-secondary text-secondary-foreground rounded-2xl flex items-center justify-center mb-6">
               <PiggyBank className="h-8 w-8" />
             </div>
-            <h3 className="text-xl font-serif font-bold mb-2">No savings goals</h3>
-            <p className="text-muted-foreground mb-6">Start building your future by creating a goal.</p>
+            <h3 className="text-xl font-serif font-bold mb-2">No savings goals yet</h3>
+            <p className="text-muted-foreground mb-6">Create your first goal and start tracking your progress.</p>
             <Button onClick={() => setIsOpen(true)} variant="outline" className="rounded-full">
-              {t('add_savings')}
+              Create Goal
             </Button>
           </CardContent>
         </Card>
