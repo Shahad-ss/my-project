@@ -556,13 +556,13 @@ export async function customFetch<T = unknown>(
 
   try {
     const response = await fetch(input, { ...init, method, headers });
+    const contentType = response.headers.get("content-type") || "";
 
-    if (response.ok) {
+    if (response.ok && !contentType.includes("text/html")) {
       return (await parseSuccessBody(response, responseType, requestInfo)) as T;
     }
 
-    const contentType = response.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
+    if (!response.ok && contentType.includes("application/json")) {
       const errorData = await parseErrorBody(response, method);
       throw new ApiError(response, errorData, requestInfo);
     }
