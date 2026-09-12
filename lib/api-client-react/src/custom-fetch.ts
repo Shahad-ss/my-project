@@ -357,7 +357,7 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
   const savingsKey = `mizan_${userKey}_savings`;
 
   if (cleanUrl.includes("/api/profile")) {
-    const profile = getStored(profileKey, { displayName: userKey !== "default" ? userKey.split("_")[0] : "User", preferredCurrency: "USD", monthlyIncome: 5000 });
+    const profile = getStored(profileKey, { displayName: userKey !== "default" ? userKey.split("_")[0] : "User", preferredCurrency: "USD", monthlyIncome: 0 });
     if (method === "PATCH" || method === "PUT" || method === "POST") {
       const updated = { ...profile, ...bodyData };
       setStored(profileKey, updated);
@@ -507,7 +507,7 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
   }
 
   if (cleanUrl.includes("/api/dashboard")) {
-    const profile = getStored(profileKey, { displayName: userKey !== "default" ? userKey.split("_")[0] : "User", preferredCurrency: "USD", monthlyIncome: 5000 });
+    const profile = getStored(profileKey, { displayName: userKey !== "default" ? userKey.split("_")[0] : "User", preferredCurrency: "USD", monthlyIncome: 0 });
     const bills = getStored<any[]>(billsKey, []);
     const debts = getStored<any[]>(debtsKey, []);
     const goals = getStored<any[]>(savingsKey, []);
@@ -519,7 +519,7 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
     const savingsProgress = targetSavings > 0 ? Math.min(100, Math.round((currentSavings / targetSavings) * 100)) : 0;
 
     return {
-      monthlyIncome: Number(profile.monthlyIncome ?? 5000),
+      monthlyIncome: Number(profile.monthlyIncome ?? 0),
       upcomingBills,
       nextBill: bills.find((b) => !b.paid)?.name || null,
       totalRemainingDebt,
