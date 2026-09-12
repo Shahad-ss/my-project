@@ -1,0 +1,10 @@
+{
+  "buildCommand": "pnpm --filter @workspace/mizan run build",
+  "outputDirectory": "artifacts/mizan/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
