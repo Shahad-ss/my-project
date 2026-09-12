@@ -337,21 +337,37 @@ function setStored<T>(key: string, value: T): void {
   } catch {}
 }
 
+function getCurrentUserKey(): string {
+  try {
+    const item = localStorage.getItem("mizan_user");
+    if (!item) return "default";
+    const parsed = JSON.parse(item);
+    return (parsed?.email || parsed?.id || "default").toLowerCase().replace(/[^a-z0-9]/g, "_");
+  } catch {
+    return "default";
+  }
+}
+
 function handleMockStorage(url: string, method: string, bodyData: any): any {
   const cleanUrl = url.split("?")[0];
+  const userKey = getCurrentUserKey();
+  const profileKey = `mizan_${userKey}_profile`;
+  const billsKey = `mizan_${userKey}_bills`;
+  const debtsKey = `mizan_${userKey}_debts`;
+  const savingsKey = `mizan_${userKey}_savings`;
 
   if (cleanUrl.includes("/api/user/profile")) {
-    const profile = getStored("mizan_profile", { displayName: "User", preferredCurrency: "USD" });
+    const profile = getStored(profileKey, { displayName: userKey !== "default" ? userKey.split("_")[0] : "User", preferredCurrency: "USD" });
     if (method === "PUT" || method === "POST") {
       const updated = { ...profile, ...bodyData };
-      setStored("mizan_profile", updated);
+      setStored(profileKey, updated);
       return updated;
     }
     return profile;
   }
 
   if (cleanUrl.includes("/api/bills")) {
-    let bills = getStored<any[]>("mizan_bills", []);
+    let bills = getStored<any[]>(billsKey, []);
     const match = cleanUrl.match(/\/api\/bills\/(\d+)/);
     const id = match ? Number(match[1]) : null;
 
@@ -370,26 +386,26 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
         daysRemaining: 7,
       };
       bills.push(newBill);
-      setStored("mizan_bills", bills);
+      setStored(billsKey, bills);
       return newBill;
     }
     if (method === "PATCH" || method === "PUT") {
       if (id) {
         bills = bills.map((b) => (b.id === id ? { ...b, ...bodyData } : b));
-        setStored("mizan_bills", bills);
+        setStored(billsKey, bills);
         return bills.find((b) => b.id === id) || {};
       }
     }
     if (method === "DELETE" && id) {
       bills = bills.filter((b) => b.id !== id);
-      setStored("mizan_bills", bills);
+      setStored(billsKey, bills);
       return { success: true };
     }
     return bills;
   }
 
   if (cleanUrl.includes("/api/debts")) {
-    let debts = getStored<any[]>("mizan_debts", []);
+    let debts = getStored<any[]>(debtsKey, []);
     const match = cleanUrl.match(/\/api\/debts\/(\d+)/);
     const id = match ? Number(match[1]) : null;
 
@@ -406,7 +422,7 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
           }
           return d;
         });
-        setStored("mizan_debts", debts);
+        setStored(debtsKey, debts);
         return debts.find((d) => d.id === payId) || {};
       }
     }
@@ -426,19 +442,19 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
         estimatedPayoffDate: new Date().toISOString(),
       };
       debts.push(newDebt);
-      setStored("mizan_debts", debts);
+      setStored(debtsKey, debts);
       return newDebt;
     }
     if (method === "DELETE" && id) {
       debts = debts.filter((d) => d.id !== id);
-      setStored("mizan_debts", debts);
+      setStored(debtsKey, debts);
       return { success: true };
     }
     return debts;
   }
 
   if (cleanUrl.includes("/api/savings-goals")) {
-    let goals = getStored<any[]>("mizan_savings", []);
+    let goals = getStored<any[]>(savingsKey, []);
     const match = cleanUrl.match(/\/api\/savings-goals\/(\d+)/);
     const id = match ? Number(match[1]) : null;
 
@@ -456,7 +472,7 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
           }
           return g;
         });
-        setStored("mizan_savings", goals);
+        setStored(savingsKey, goals);
         return goals.find((g) => g.id === contribId) || {};
       }
     }
@@ -479,21 +495,21 @@ function handleMockStorage(url: string, method: string, bodyData: any): any {
         estimatedCompletionDate: new Date().toISOString(),
       };
       goals.push(newGoal);
-      setStored("mizan_savings", goals);
+      setStored(savingsKey, goals);
       return newGoal;
     }
     if (method === "DELETE" && id) {
       goals = goals.filter((g) => g.id !== id);
-      setStored("mizan_savings", goals);
+      setStored(savingsKey, goals);
       return { success: true };
     }
     return goals;
   }
 
   if (cleanUrl.includes("/api/dashboard")) {
-    const bills = getStored<any[]>("mizan_bills", []);
-    const debts = getStored<any[]>("mizan_debts", []);
-    const goals = getStored<any[]>("mizan_savings", []);
+    const bills = getStored<any[]>(billsKey, []);
+    const debts = getStored<any[]>(debtsKey, []);
+    const goals = getStored<any[]>(savingsKey, []);
 
     const upcomingBills = bills.filter((b) => !b.paid).length;
     const totalRemainingDebt = debts.reduce((sum, d) => sum + Number(d.remainingAmount || 0), 0);
